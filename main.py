@@ -23,17 +23,64 @@ API_KEY = "ak_zdphqiiv3dzvbnku6kziq4ww"
 # )
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "https://dash-d8aze2.example.com",
-        # Add the actual assignment page origin here if different.
-    ],
-    allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "X-API-Key"],
-)
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=[
+#         "https://dash-d8aze2.example.com",
+#         # Add the actual assignment page origin here if different.
+#     ],
+#     allow_credentials=False,
+#     allow_methods=["GET", "POST", "OPTIONS"],
+#     allow_headers=["Content-Type", "X-API-Key"],
+# )
 
+
+
+import time
+import uuid
+
+from fastapi import Request
+from starlette.responses import Response
+
+ALLOWED_STATS_ORIGIN = "https://dash-d8aze2.example.com"
+
+
+@app.middleware("http")
+async def request_and_cors_middleware(request: Request, call_next):
+    start = time.perf_counter()
+    request_id = str(uuid.uuid4())
+    origin = request.headers.get("origin")
+    path = request.url.path
+
+    # Analytics: wildcard CORS is explicitly permitted by the assignment.
+    if path == "/analytics" and request.method == "OPTIONS":
+        response = Response(status_code=200)
+    # Stats: preflight is allowed only from the assigned origin.
+    elif path == "/stats" and request.method == "OPTIONS":
+        if origin != ALLOWED_STATS_ORIGIN:
+            response = Response(status_code=400)
+        else:
+            response = Response(status_code=200)
+    else:
+        response = await call_next(request)
+
+    if path == "/analytics":
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = (
+            "Content-Type, X-API-Key"
+        )
+    elif origin == ALLOWED_STATS_ORIGIN:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Process-Time"] = (
+        f"{max(0.0, time.perf_counter() - start):.6f}"
+    )
+
+    return response
 
 
 
