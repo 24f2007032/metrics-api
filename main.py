@@ -14,13 +14,26 @@ ALLOWED_ORIGIN = "https://dash-d8aze2.example.com"
 API_KEY = "ak_zdphqiiv3dzvbnku6kziq4ww"
 
 # Strictly allow only the assigned origin.
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=[ALLOWED_ORIGIN],
+#     allow_credentials=False,
+#     allow_methods=["GET", "OPTIONS"],
+#     allow_headers=["*"],
+# )
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[ALLOWED_ORIGIN],
+    allow_origins=[
+        "https://dash-d8aze2.example.com",
+        # Add the actual assignment page origin here if different.
+    ],
     allow_credentials=False,
-    allow_methods=["GET", "OPTIONS"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-API-Key"],
 )
+
 
 
 
